@@ -14,5 +14,9 @@ func _physics_process(delta: float) -> void:
 			velocity = velocity.bounce(collision.get_normal())
 			if collision.get_collider().has_method("hit"):
 				collision.get_collider().hit()
-		if velocity.y > 624:
-			velocity.y = -SPEED
+
+func gameOver():
+	get_tree().reload_current_scene()
+
+func _on_death_zone_body_entered(body: Node2D) -> void:
+	gameOver()

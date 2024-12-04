@@ -1,6 +1,7 @@
-[gd_scene load_steps=9 format=4 uid="uid://cpgenxgj0af4f"]
+[gd_scene load_steps=11 format=4 uid="uid://cpgenxgj0af4f"]
 
 [ext_resource type="Texture2D" uid="uid://b2ink78fgeocf" path="res://Assets/Backround_Tiles.png" id="1_6rnna"]
+[ext_resource type="Script" path="res://Scripts/main.gd" id="1_g5pbr"]
 [ext_resource type="PackedScene" uid="uid://dym0wmt4is06d" path="res://Scenes/paddle.tscn" id="2_ctoul"]
 [ext_resource type="PackedScene" uid="uid://de75etbt5jxlk" path="res://Scenes/ball.tscn" id="3_s0u04"]
 
@@ -115,7 +116,11 @@ size = Vector2(18, 624)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_nj7q4"]
 size = Vector2(1084, 20)
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_dqbq5"]
+size = Vector2(1084, 11)
+
 [node name="Main" type="Node"]
+script = ExtResource("1_g5pbr")
 
 [node name="Background" type="TileMapLayer" parent="."]
 scale = Vector2(3, 3)
@@ -141,3 +146,11 @@ shape = SubResource("RectangleShape2D_gniau")
 [node name="Celling" type="CollisionShape2D" parent="Walls"]
 position = Vector2(532, -10)
 shape = SubResource("RectangleShape2D_nj7q4")
+
+[node name="DeathZone" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="DeathZone"]
+position = Vector2(532, 631)
+shape = SubResource("RectangleShape2D_dqbq5")
+
+[connection signal="body_entered" from="DeathZone" to="Ball" method="_on_death_zone_body_entered"]

@@ -11,7 +11,7 @@ gravity_scale = 0.0
 script = ExtResource("1_jtie8")
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
-scale = Vector2(5, 5)
+scale = Vector2(4, 4)
 texture = ExtResource("1_7wdd1")
 region_enabled = true
 region_rect = Rect2(239.943, -0.0157175, 16.1196, 15.9647)
