@@ -1,27 +1,83 @@
 #include "raylib.h"
 #include <math.h>
+#include <vector>
 
-// Function to check collision side (returns "long" or "short" side)
-int GetCollisionSide(Vector2 circlePos, Rectangle rect) {
-    // Find the closest point on the rectangle to the circle
-    float closestX = fmax(rect.x, fmin(circlePos.x, rect.x + rect.width));
-    float closestY = fmax(rect.y, fmin(circlePos.y, rect.y + rect.height));
+bool fCollisionBallBrick(Vector2 &ballPosition, Vector2 &ballSpeed, int ballRadius, Rectangle &brick) {
+    if (CheckCollisionCircleRec(ballPosition, ballRadius, brick)) {
+        // Sides of rectangle
+        int left = brick.x;
+        int right = brick.x + brick.width;
+        int top = brick.y; 
+        int bottom = brick.y + brick.height;
 
-    // Calculate distances from the center of the circle
-    float distX = fabs(circlePos.x - closestX);
-    float distY = fabs(circlePos.y - closestY);
+        // Previus position ball
+        int px = ballPosition.x - ballSpeed.x;
+        int py = ballPosition.y - ballSpeed.y;
 
-    // Determine if collision happens on the long or short side
-    if ((rect.width >= rect.height && distY > distX) || 
-        (rect.height > rect.width && distX > distY)) {
-		// Long side
-        return 1;
-    } else {
-		// Shor side
-        return 2;
+        if( px < left ) {
+            if ( ballSpeed.x > 0 )
+                ballSpeed.x *= -1.0f;
+            ballPosition.x = left - ballRadius;
+        }
+        else if( px > right ) {
+            if ( ballSpeed.x < 0 )
+                ballSpeed.x *= -1.0f;
+            ballPosition.x = right + ballRadius; 
+        }
+        else if ( py < top ) {
+            if ( ballSpeed.y > 0 )
+                ballSpeed.y *= -1.0f;
+            ballPosition.y = top - ballRadius; 
+        }
+        else if ( py > bottom) {
+            if ( ballSpeed.y < 0 )
+                ballSpeed.y *= -1.0f;
+            ballPosition.y = bottom + ballRadius; 
+        }
+        return true;
+    }
+    return false;
+}
+
+void fCollisionBallPlatform(Vector2 &ballPosition, Vector2 &ballSpeed, int ballRadius, Rectangle platform) {
+    if (CheckCollisionCircleRec(ballPosition, ballRadius, platform)) {
+        // Sides of rectangle
+        int left = platform.x;
+        int right = platform.x + platform.width;
+        int top = platform.y; 
+
+        // Previus position ball
+        int px = ballPosition.x - ballSpeed.x;
+        int py = ballPosition.y - ballSpeed.y;
+        if( px < left ) {
+            if ( ballSpeed.x > 0 )
+                ballSpeed.x *= -1.0f;
+            ballPosition.x = left - ballRadius;
+        }
+        else if( px > right ) {
+            if ( ballSpeed.x < 0 )
+                ballSpeed.x *= -1.0f;
+            ballPosition.x = right + ballRadius; 
+        }
+        else if ( py < top ) {
+            if ( ballSpeed.y > 0 )
+                ballSpeed.y *= -1.0f;
+            ballPosition.y = top - ballRadius; 
+        }
     }
 }
 
+void initBricks(std::vector<Rectangle> &bricks, Vector2 initBrickPos, Vector2 brickSize) {
+    Vector2 brickDistant = {50 + brickSize.x, 25 + brickSize.y};
+    if (bricks.size() > 0) bricks.clear();
+    for (int i = 0; i < 7; i++) {
+        for (int j = 0; j < 4; j++) {
+            Vector2 brickPos = { initBrickPos.x + i * brickDistant.x, initBrickPos.y + j * brickDistant.y};
+            Rectangle brick = {brickPos.x, brickPos.y, brickSize.x, brickSize.y};
+            bricks.push_back(brick); 
+        }
+    } 
+};
 
 #define WIDTH 800
 #define HEIGHT 450
@@ -31,20 +87,25 @@ int main () {
 	SetConfigFlags(FLAG_MSAA_4X_HINT);
 	InitWindow(WIDTH, HEIGHT, "Breakout!");
 
-	// Ball
-    Vector2 ballPosition = { GetScreenWidth()/2.0f, GetScreenHeight()/2.0f };
-    Vector2 ballSpeed = { 5.0f, 4.0f };
-    int ballRadius = 20;
 	// Platform
 	Vector2 platformPos = {350, 420};
 	Vector2 platformSize = {100, 30};
 	Rectangle platform = {platformPos.x, platformPos.y, platformSize.x, platformSize.y};
 	int platformSpeed = 5;
+	// Ball
+    int ballRadius = 20;
+    Vector2 ballPosition = { platform.x + platformSize.x/2, platform.y - ballRadius };
+    Vector2 ballSpeed = { 5.0f, 4.0f };
+    // Bricks
+    std::vector<Rectangle> bricks;
+    Vector2 initBrickPos = {30, 20};
+    Vector2 brickSize = {62, 25};
+    initBricks(bricks, initBrickPos, brickSize);
 
 	// Game variable
     bool pause = 0;
+    bool gameOver = 0;
     int framesCounter = 0;
-	bool ballPlatformCollision = false;
 
     SetTargetFPS(60);               // Set our game to run at 60 frames-per-second
     //----------------------------------------------------------
@@ -56,7 +117,7 @@ int main () {
         //-----------------------------------------------------
         if (IsKeyPressed(KEY_SPACE)) pause = !pause;
 
-        if (!pause)
+        if (!pause && !gameOver)
         {
             ballPosition.x += ballSpeed.x;
             ballPosition.y += ballSpeed.y;
@@ -64,6 +125,7 @@ int main () {
             // Check walls collision for bouncing
             if ((ballPosition.x >= (GetScreenWidth() - ballRadius)) || (ballPosition.x <= ballRadius)) ballSpeed.x *= -1.0f;
             if ((ballPosition.y >= (GetScreenHeight() - ballRadius)) || (ballPosition.y <= ballRadius)) ballSpeed.y *= -1.0f;
+            if (ballPosition.y >= (GetScreenHeight() - ballRadius)) gameOver = true;
 			
 			if (IsKeyDown(KEY_A) && platform.x >= 0)
 			{
@@ -74,19 +136,26 @@ int main () {
 			{
 				platform.x += platformSpeed;
 			}
-			
-			ballPlatformCollision = CheckCollisionCircleRec(ballPosition, ballRadius, platform);
-			int collisionSide = ballPlatformCollision ? GetCollisionSide(ballPosition, platform) : 0;
-			if (collisionSide == 1)
-			{
-				ballSpeed.y *= -1.0f;
-			} 
-			if (collisionSide == 2) {
-				ballSpeed.x *= -1.0f;
-			}
+
+            fCollisionBallPlatform(ballPosition, ballSpeed, ballRadius, platform);
+            for (size_t i = 0; i < bricks.size(); i++) {
+                if (fCollisionBallBrick(ballPosition, ballSpeed, ballRadius, bricks[i]))
+                {
+                    bricks.erase(bricks.begin() + i);
+                    i = 0;
+                }
+            }
         }
         else framesCounter++;
 
+        if (gameOver) {
+            if (IsKeyPressed(KEY_R)) 
+            {
+                ballPosition = { platform.x + platformSize.x/2, platform.y - ballRadius };
+                initBricks(bricks, initBrickPos, brickSize); 
+                gameOver = !gameOver;
+            }
+        }
         //-----------------------------------------------------
 
         // Draw
@@ -96,10 +165,15 @@ int main () {
             ClearBackground(BLACK);
 
             DrawCircleV(ballPosition, (float)ballRadius, MAROON);
-			DrawRectangleRec(platform, RED);
+			DrawRectangleRec(platform, MAROON);
 
+            for (auto brick : bricks) {
+                DrawRectangleRec(brick, MAROON);
+            }
             // On pause, we draw a blinking message
-            if (pause && ((framesCounter/30)%2)) DrawText("PAUSED", 350, 200, 30, GRAY);
+            if (pause && !gameOver && ((framesCounter/30)%2)) DrawText("PAUSED, Press Space to continue", 150, 200, 30, GRAY);
+            // On game over, we also drawo a blinking message
+            if (gameOver && ((framesCounter/30)%2)) DrawText("GameOver, Press R to restart", 200, 200, 30, GRAY);
 
             DrawFPS(10, 10);
 
